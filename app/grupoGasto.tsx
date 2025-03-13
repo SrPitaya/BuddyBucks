@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Button, TextInput, FlatList, Alert, Share } from "react-native";
+import { View, Text, FlatList, Alert, Share } from "react-native";
 import { Picker } from '@react-native-picker/picker';
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { doc, getDoc, setDoc, collection } from "firebase/firestore";
 import { auth, firestoredb } from "../firebase/connectFirebase";
+import { Button, Card, TextInput, Title } from "react-native-paper";
 
 export default function GrupoGasto() {
   const { id } = useLocalSearchParams();
@@ -13,7 +14,7 @@ export default function GrupoGasto() {
   const [referencia, setReferencia] = useState("");
   const [monto, setMonto] = useState("");
   const [gastos, setGastos] = useState<any[]>([]);
-  const [apodos, setApodos] = useState<{ [key: string]: string }>({}); // Mapa de id a apodo
+  const [apodos, setApodos] = useState<{ [key: string]: string }>({});
   const router = useRouter();
 
   useEffect(() => {
@@ -25,7 +26,6 @@ export default function GrupoGasto() {
         if (grupoSnap.exists()) {
           setGrupo(grupoSnap.data());
 
-          // Obtener los apodos de los miembros
           const miembros = grupoSnap.data().miembros;
           const apodosMap: { [key: string]: string } = {};
           await Promise.all(
@@ -39,7 +39,6 @@ export default function GrupoGasto() {
           );
           setApodos(apodosMap);
 
-          // Obtener los gastos del grupo
           const gastosData = await Promise.all(
             grupoSnap.data().gastos.map(async (gastoId: string) => {
               const gastoDoc = doc(firestoredb, "gastos", gastoId);
@@ -95,7 +94,7 @@ export default function GrupoGasto() {
         }]);
 
         Alert.alert("Éxito", "Gasto añadido correctamente.");
-        setTipoGasto("GRUPAL"); // Limpiar campos
+        setTipoGasto("GRUPAL");
         setCategoria("comida");
         setReferencia("");
         setMonto("");
@@ -139,12 +138,18 @@ export default function GrupoGasto() {
   };
 
   return (
-    <View style={{ flex: 1, padding: 20 }}>
-      <Text style={{ fontSize: 24, marginBottom: 20 }}>Grupo de Gastos: {grupo?.tema}</Text>
-      <Text style={{ fontSize: 18, marginBottom: 10 }}>Código del grupo: {grupo?.codigo}</Text>
-      <Button title="Compartir código" onPress={compartirCodigo} />
+    <View style={{ flex: 1, padding: 20, backgroundColor: '#FFFFFF' }}>
+      <Card>
+        <Card.Content>
+          <Title style={{ fontSize: 24 }}>Grupo de Gastos: {grupo?.tema}</Title>
+          <Text style={{ fontSize: 18 }}>Código del grupo: {grupo?.codigo}</Text>
+          <Button mode="contained" onPress={compartirCodigo} style={{ marginTop: 10 }}>
+            Compartir código
+          </Button>
+        </Card.Content>
+      </Card>
 
-      <Text style={{ fontSize: 18, marginTop: 20 }}>Añadir gasto</Text>
+      <Title style={{ fontSize: 18, marginTop: 20 }}>Añadir gasto</Title>
 
       <Picker
         selectedValue={tipoGasto}
@@ -179,16 +184,18 @@ export default function GrupoGasto() {
       )}
 
       <TextInput
-        placeholder="Monto"
+        label="Monto"
         value={monto}
         onChangeText={setMonto}
         keyboardType="numeric"
-        style={{ borderBottomWidth: 1, marginBottom: 10, width: 200 }}
+        style={{ marginBottom: 10 }}
       />
 
-      <Button title="Añadir gasto" onPress={añadirGasto} />
+      <Button mode="contained" onPress={añadirGasto} style={{ marginBottom: 20 }}>
+        Añadir gasto
+      </Button>
 
-      <Text style={{ fontSize: 18, marginTop: 20 }}>Historial de gastos:</Text>
+      <Title style={{ fontSize: 18 }}>Historial de gastos:</Title>
       <FlatList
         data={gastos}
         keyExtractor={(item) => item.id}
@@ -203,7 +210,9 @@ export default function GrupoGasto() {
         )}
       />
 
-      <Button title="Finalizar grupo" onPress={finalizarGrupo} />
+      <Button mode="contained" onPress={finalizarGrupo} style={{ marginTop: 20 }}>
+        Finalizar grupo
+      </Button>
     </View>
   );
 }

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Button, TextInput, FlatList, TouchableOpacity, Alert } from "react-native";
+import { View, FlatList, TouchableOpacity, Alert, Text } from "react-native";
 import { useRouter } from "expo-router";
 import { getAuth, signOut } from "firebase/auth";
 import { doc, getDoc, collection, query, where, getDocs, setDoc, updateDoc } from "firebase/firestore";
 import { auth, firestoredb } from "../firebase/connectFirebase";
 import { Ionicons } from '@expo/vector-icons';
+import { Button, Card, TextInput, Title } from "react-native-paper";
 
 type Deuda = {
   deudaTotal: number;
@@ -68,7 +69,7 @@ export default function Dashboard() {
         const deudaSnap = await getDoc(deudaRef);
 
         if (deudaSnap.exists()) {
-          const deudaData = deudaSnap.data() as Deuda; // Casteo explícito
+          const deudaData = deudaSnap.data() as Deuda;
           setDeudas({ [auth.currentUser.uid]: deudaData });
         }
       }
@@ -316,31 +317,39 @@ export default function Dashboard() {
   };
 
   return (
-    <View style={{ flex: 1, padding: 20 }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Text style={{ fontSize: 24 }}>Dashboard</Text>
-        <TouchableOpacity onPress={() => router.push("/perfil")}>
-          <Ionicons name="person-circle-outline" size={32} color="black" />
-        </TouchableOpacity>
-      </View>
+    <View style={{ flex: 1, padding: 20, backgroundColor: '#FFFFFF' }}>
+      <Card>
+        <Card.Content>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <Title style={{ fontSize: 24 }}>Dashboard</Title>
+            <TouchableOpacity onPress={() => router.push("/perfil")}>
+              <Ionicons name="person-circle-outline" size={32} color="#52CC99" />
+            </TouchableOpacity>
+          </View>
+        </Card.Content>
+      </Card>
 
       <TextInput
-        placeholder="Nombre del grupo"
+        label="Nombre del grupo"
         value={nombreGrupo}
         onChangeText={setNombreGrupo}
-        style={{ borderBottomWidth: 1, marginBottom: 10, width: 200 }}
+        style={{ marginBottom: 10 }}
       />
-      <Button title="Crear grupo de gasto" onPress={crearGrupoDeGastos} />
+      <Button mode="contained" onPress={crearGrupoDeGastos} style={{ marginBottom: 10 }}>
+        Crear grupo de gasto
+      </Button>
 
       <TextInput
-        placeholder="Código de invitación"
+        label="Código de invitación"
         value={codigoInvitacion}
         onChangeText={setCodigoInvitacion}
-        style={{ borderBottomWidth: 1, marginBottom: 10, width: 200 }}
+        style={{ marginBottom: 10 }}
       />
-      <Button title="Unirse a un grupo" onPress={unirseAGrupo} />
+      <Button mode="contained" onPress={unirseAGrupo} style={{ marginBottom: 20 }}>
+        Unirse a un grupo
+      </Button>
 
-      <Text style={{ fontSize: 20, marginTop: 20 }}>Grupos a los que perteneces:</Text>
+      <Title style={{ fontSize: 20 }}>Grupos a los que perteneces:</Title>
       <FlatList
         data={grupos}
         keyExtractor={(item) => item.id}
@@ -355,18 +364,20 @@ export default function Dashboard() {
         )}
       />
 
-      <Text style={{ fontSize: 20, marginTop: 20 }}>Deudas:</Text>
+      <Title style={{ fontSize: 20, marginTop: 20 }}>Deudas:</Title>
       {auth.currentUser && deudas[auth.currentUser.uid] && (
         <View style={{ marginTop: 10 }}>
           <Text>Deuda Total: ${deudas[auth.currentUser.uid].deudaTotal}</Text>
           <FlatList
             data={deudas[auth.currentUser.uid].acreedores}
-            keyExtractor={(item, index) => index.toString()}
+            keyExtractor={(_, index) => index.toString()}
             renderItem={({ item }) => (
               <View style={{ marginBottom: 10 }}>
                 <Text>{item.apodo} -- {item.tema} – {item.tipo} --- {item.categoria} --- ${item.monto}</Text>
                 {!item.pagado && (
-                  <Button title="Pagar" onPress={() => pagarDeuda(item.grupoId, item.apodo, item.monto)} />
+                  <Button mode="contained" onPress={() => pagarDeuda(item.grupoId, item.apodo, item.monto)}>
+                    Pagar
+                  </Button>
                 )}
               </View>
             )}
@@ -374,7 +385,9 @@ export default function Dashboard() {
         </View>
       )}
 
-      <Button title="Cerrar Sesión" onPress={handleLogout} />
+      <Button mode="contained" onPress={handleLogout} style={{ marginTop: 20 }}>
+        Cerrar Sesión
+      </Button>
     </View>
   );
 }
