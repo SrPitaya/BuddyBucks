@@ -28,8 +28,10 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={DefaultTheme}>
       <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="dashboard" options={{ title: "Dashboard" }} />
+        <Stack.Screen name="grupoGasto" options={{ title: "Grupo de Gastos" }} />
+        <Stack.Screen name="perfil" options={{ title: "Perfil" }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

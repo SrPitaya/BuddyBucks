@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Button } from "react-native";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth"; // Asegúrate de importar estas funciones
+import { View, Alert } from "react-native";
+import { Button, TextInput, Text, useTheme } from "react-native-paper";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { getFirestore, setDoc, doc } from "firebase/firestore";
 import { auth, firestoredb } from "../firebase/connectFirebase";
 import { useRouter } from "expo-router";
@@ -13,31 +14,29 @@ export default function AuthScreen() {
   const [apodo, setApodo] = useState("");
   const [edad, setEdad] = useState("");
   const [genero, setGenero] = useState("");
-  const [isLogin, setIsLogin] = useState(true); // Controla si es login o registro
+  const [isLogin, setIsLogin] = useState(true);
   const router = useRouter();
+  const { colors } = useTheme();
 
   const handleAuth = async () => {
     try {
       if (isLogin) {
-        // Login: solo correo y contraseña
         await signInWithEmailAndPassword(auth, email, password);
-        router.replace("/dashboard"); // Redirige al dashboard después de loguearse
+        router.replace("/dashboard");
       } else {
-        // Registro: guardar datos adicionales
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Guardar los datos adicionales del usuario en Firestore
         await setDoc(doc(firestoredb, "users", user.uid), {
           email: user.email,
           nombre,
           apellido,
           apodo,
-          edad: parseInt(edad),  // Asegúrate de convertir la edad a número
+          edad: parseInt(edad),
           genero,
         });
 
-        router.replace("/dashboard"); // Redirige al dashboard después de registrarse
+        router.replace("/dashboard");
       }
     } catch (error: unknown) {
       const err = error as Error;
@@ -46,60 +45,96 @@ export default function AuthScreen() {
   };
 
   return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <Text>{isLogin ? "Iniciar sesión" : "Registrarse"}</Text>
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#FFFFFF" }}>
+      <Text style={{ fontSize: 24, marginBottom: 20, color: colors.primary }}>
+        {isLogin ? "Iniciar sesión" : "Registrarse"}
+      </Text>
+
       <TextInput
-        placeholder="Correo"
+        label="Correo"
         value={email}
         onChangeText={setEmail}
-        style={{ borderBottomWidth: 1, marginBottom: 10, width: 200 }}
+        style={{ width: "80%", marginBottom: 10, backgroundColor: "#FFFFFF" }}
+        mode="outlined"
+        theme={{ colors: { primary: "#52CC99" } }}
       />
+
       <TextInput
-        placeholder="Contraseña"
+        label="Contraseña"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
-        style={{ borderBottomWidth: 1, marginBottom: 10, width: 200 }}
+        style={{ width: "80%", marginBottom: 10, backgroundColor: "#FFFFFF" }}
+        mode="outlined"
+        theme={{ colors: { primary: "#52CC99" } }}
       />
 
       {!isLogin && (
         <>
           <TextInput
-            placeholder="Nombre"
+            label="Nombre"
             value={nombre}
             onChangeText={setNombre}
-            style={{ borderBottomWidth: 1, marginBottom: 10, width: 200 }}
+            style={{ width: "80%", marginBottom: 10, backgroundColor: "#FFFFFF" }}
+            mode="outlined"
+            theme={{ colors: { primary: "#52CC99" } }}
           />
+
           <TextInput
-            placeholder="Apellido"
+            label="Apellido"
             value={apellido}
             onChangeText={setApellido}
-            style={{ borderBottomWidth: 1, marginBottom: 10, width: 200 }}
+            style={{ width: "80%", marginBottom: 10, backgroundColor: "#FFFFFF" }}
+            mode="outlined"
+            theme={{ colors: { primary: "#52CC99" } }}
           />
+
           <TextInput
-            placeholder="Apodo"
+            label="Apodo"
             value={apodo}
             onChangeText={setApodo}
-            style={{ borderBottomWidth: 1, marginBottom: 10, width: 200 }}
+            style={{ width: "80%", marginBottom: 10, backgroundColor: "#FFFFFF" }}
+            mode="outlined"
+            theme={{ colors: { primary: "#52CC99" } }}
           />
+
           <TextInput
-            placeholder="Edad"
+            label="Edad"
             value={edad}
             onChangeText={setEdad}
             keyboardType="numeric"
-            style={{ borderBottomWidth: 1, marginBottom: 10, width: 200 }}
+            style={{ width: "80%", marginBottom: 10, backgroundColor: "#FFFFFF" }}
+            mode="outlined"
+            theme={{ colors: { primary: "#52CC99" } }}
           />
+
           <TextInput
-            placeholder="Género"
+            label="Género"
             value={genero}
             onChangeText={setGenero}
-            style={{ borderBottomWidth: 1, marginBottom: 10, width: 200 }}
+            style={{ width: "80%", marginBottom: 10, backgroundColor: "#FFFFFF" }}
+            mode="outlined"
+            theme={{ colors: { primary: "#52CC99" } }}
           />
         </>
       )}
 
-      <Button title={isLogin ? "Iniciar sesión" : "Registrarse"} onPress={handleAuth} />
-      <Button title={`Cambiar a ${isLogin ? "Registro" : "Login"}`} onPress={() => setIsLogin(!isLogin)} />
+      <Button
+        mode="contained"
+        onPress={handleAuth}
+        style={{ width: "80%", marginBottom: 10, backgroundColor: "#52CC99" }}
+      >
+        {isLogin ? "Iniciar sesión" : "Registrarse"}
+      </Button>
+
+      <Button
+        mode="text"
+        onPress={() => setIsLogin(!isLogin)}
+        style={{ width: "80%" }}
+        labelStyle={{ color: "#52CC99" }}
+      >
+        {isLogin ? "Cambiar a Registro" : "Cambiar a Login"}
+      </Button>
     </View>
   );
 }
