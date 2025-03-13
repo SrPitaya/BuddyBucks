@@ -1,19 +1,35 @@
-import React from "react";
-import { Text, View } from "react-native";
-import app from "../firebase/connectFirebase";
-import {getFirestore, collection, getDocs} from "firebase/firestore";
-const  db = getFirestore(app);
+// Code: Index.tsx
+
+import React, { useEffect, useState } from "react";
+import { View, ActivityIndicator } from "react-native";
+import { useRouter } from "expo-router";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { app, auth, firestoredb } from "../firebase/connectFirebase";
 
 export default function Index() {
-  return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Text>Edit app/index.tsx to edit this screen.</Text>
-    </View>
-  );
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        router.replace("/dashboard"); // Si hay sesión, ir al dashboard
+      } else {
+        router.replace("/auth"); // Si no, ir al login/registro
+      }
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  return null;
 }
