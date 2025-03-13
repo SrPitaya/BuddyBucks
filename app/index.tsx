@@ -1,6 +1,6 @@
 import React from "react";
 import { Text, View } from "react-native";
-import app from "./connectFirebase";
+import app from "../firebase/connectFirebase";
 import {getFirestore, collection, getDocs} from "firebase/firestore";
 const  db = getFirestore(app);
 
