@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { View, FlatList, TouchableOpacity, Alert, Text } from "react-native";
+import { View, FlatList, TouchableOpacity, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { getAuth, signOut } from "firebase/auth";
 import { doc, getDoc, collection, query, where, getDocs, setDoc, updateDoc } from "firebase/firestore";
 import { auth, firestoredb } from "../firebase/connectFirebase";
 import { Ionicons } from '@expo/vector-icons';
-import { Button, Card, TextInput, Title } from "react-native-paper";
+import { Button, Card, TextInput, Title, Text } from "react-native-paper";
 
 type Deuda = {
   deudaTotal: number;
@@ -32,6 +32,7 @@ export default function Dashboard() {
   const [codigoInvitacion, setCodigoInvitacion] = useState("");
   const router = useRouter();
 
+  // Obtener datos del usuario
   useEffect(() => {
     const fetchUserData = async () => {
       if (auth.currentUser) {
@@ -49,6 +50,7 @@ export default function Dashboard() {
     fetchUserData();
   }, []);
 
+  // Obtener grupos del usuario
   useEffect(() => {
     const fetchGrupos = async () => {
       if (auth.currentUser) {
@@ -62,27 +64,12 @@ export default function Dashboard() {
     fetchGrupos();
   }, []);
 
+  // Calcular deudas cuando cambian los grupos
   useEffect(() => {
-    const fetchDeudas = async () => {
-      if (auth.currentUser) {
-        const deudaRef = doc(firestoredb, "deudas", auth.currentUser.uid);
-        const deudaSnap = await getDoc(deudaRef);
+    calcularDeudas();
+  }, [grupos]);
 
-        if (deudaSnap.exists()) {
-          const deudaData = deudaSnap.data() as Deuda;
-          setDeudas({ [auth.currentUser.uid]: deudaData });
-        }
-      }
-    };
-
-    fetchDeudas();
-  }, []);
-
-  const handleLogout = async () => {
-    await signOut(auth);
-    router.replace("/auth");
-  };
-
+  // Crear un nuevo grupo de gastos
   const crearGrupoDeGastos = async () => {
     if (!nombreGrupo) {
       Alert.alert("Error", "Por favor, ingresa un nombre para el grupo.");
@@ -102,15 +89,17 @@ export default function Dashboard() {
         gastos: [],
       });
 
-      Alert.alert("Éxito", "Grupo de gastos creado correctamente.");
+      // Actualizar el estado local inmediatamente
       setGrupos([...grupos, { id: grupoId, codigo, tema: nombreGrupo, estado: "ACTIVO", miembros: [auth.currentUser?.uid], gastos: [] }]);
       setNombreGrupo("");
+      Alert.alert("Éxito", "Grupo de gastos creado correctamente.");
     } catch (error) {
       console.error("Error al crear el grupo de gastos:", error);
       Alert.alert("Error", "Hubo un problema al crear el grupo de gastos.");
     }
   };
 
+  // Unirse a un grupo existente
   const unirseAGrupo = async () => {
     if (!codigoInvitacion) {
       Alert.alert("Error", "Por favor, ingresa un código de invitación.");
@@ -134,18 +123,22 @@ export default function Dashboard() {
         return;
       }
 
+      // Actualizar Firestore
       await updateDoc(doc(firestoredb, "grupos", grupoDoc.id), {
         miembros: [...grupoData.miembros, auth.currentUser?.uid],
       });
 
-      Alert.alert("Éxito", "Te has unido al grupo de gastos correctamente.");
+      // Actualizar el estado local inmediatamente
+      setGrupos([...grupos, { id: grupoDoc.id, ...grupoData }]);
       setCodigoInvitacion("");
+      Alert.alert("Éxito", "Te has unido al grupo de gastos correctamente.");
     } catch (error) {
       console.error("Error al unirse al grupo de gastos:", error);
       Alert.alert("Error", "Hubo un problema al unirse al grupo de gastos.");
     }
   };
 
+  // Calcular deudas
   const calcularDeudas = async () => {
     const deudasCalculadas: Deudas = {};
 
@@ -210,69 +203,11 @@ export default function Dashboard() {
       }
     }
 
+    // Actualizar el estado local de las deudas
     setDeudas(deudasCalculadas);
   };
 
-  useEffect(() => {
-    calcularDeudas();
-  }, [grupos]);
-
-  const verificarYcerrarGrupo = async (grupoId: string) => {
-    try {
-      const grupoDoc = doc(firestoredb, "grupos", grupoId);
-      const grupoSnap = await getDoc(grupoDoc);
-
-      if (!grupoSnap.exists()) {
-        console.error("El grupo no existe.");
-        return;
-      }
-
-      const grupoData = grupoSnap.data();
-
-      // Obtener las deudas de todos los miembros del grupo
-      const miembros = grupoData.miembros;
-      const deudasMiembros = await Promise.all(
-        miembros.map(async (miembroId: string) => {
-          const miembroDeudaRef = doc(firestoredb, "deudas", miembroId);
-          const miembroDeudaSnap = await getDoc(miembroDeudaRef);
-          return miembroDeudaSnap.data();
-        })
-      );
-
-      // Verificar si todas las deudas están pagadas (deudaTotal = 0)
-      const todasPagadas = deudasMiembros.every((deuda) => deuda?.deudaTotal === 0);
-
-      if (todasPagadas) {
-        // Cerrar el grupo si todas las deudas están pagadas
-        await updateDoc(grupoDoc, {
-          estado: "CERRADO",
-        });
-
-        // Eliminar las deudas relacionadas con el grupo
-        await Promise.all(
-          miembros.map(async (miembroId: string) => {
-            const miembroDeudaRef = doc(firestoredb, "deudas", miembroId);
-            const miembroDeudaSnap = await getDoc(miembroDeudaRef);
-
-            if (miembroDeudaSnap.exists()) {
-              const deudaData = miembroDeudaSnap.data();
-              const nuevasDeudas = deudaData.acreedores.filter((a: any) => a.grupoId !== grupoId);
-
-              await updateDoc(miembroDeudaRef, {
-                acreedores: nuevasDeudas,
-                deudaTotal: nuevasDeudas.reduce((total: number, a: any) => total + a.monto, 0),
-              });
-            }
-          })
-        );
-
-        console.log("Todas las deudas han sido pagadas. El grupo ha sido cerrado.");
-      }
-    } catch (error) {
-      console.error("Error al verificar y cerrar el grupo:", error);
-    }
-  };
-
+  // Pagar una deuda
   const pagarDeuda = async (grupoId: string, acreedorId: string, monto: number) => {
     try {
       const grupoDoc = doc(firestoredb, "grupos", grupoId);
@@ -304,8 +239,10 @@ export default function Dashboard() {
             deudaTotal: deudaData.deudaTotal,
           });
 
-          // Verificar si todas las deudas están pagadas y cerrar el grupo si es necesario
-          await verificarYcerrarGrupo(grupoId);
+          // Actualizar el estado local de las deudas
+          if (auth.currentUser?.uid) {
+            setDeudas({ ...deudas, [auth.currentUser.uid]: deudaData as Deuda });
+          }
 
           Alert.alert("Éxito", `Has pagado $${monto} a ${acreedorId}.`);
         }
@@ -313,6 +250,17 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Error al pagar la deuda:", error);
       Alert.alert("Error", "Hubo un problema al pagar la deuda.");
+    }
+  };
+
+  // Manejar cierre de sesión
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push("/auth");
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+      Alert.alert("Error", "Hubo un problema al cerrar sesión.");
     }
   };
 
@@ -370,7 +318,7 @@ export default function Dashboard() {
           <Text>Deuda Total: ${deudas[auth.currentUser.uid].deudaTotal}</Text>
           <FlatList
             data={deudas[auth.currentUser.uid].acreedores}
-            keyExtractor={(_, index) => index.toString()}
+            keyExtractor={(item, index) => index.toString()}
             renderItem={({ item }) => (
               <View style={{ marginBottom: 10 }}>
                 <Text>{item.apodo} -- {item.tema} – {item.tipo} --- {item.categoria} --- ${item.monto}</Text>
